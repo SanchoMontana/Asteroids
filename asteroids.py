@@ -1,3 +1,5 @@
+import time
+
 import pygame
 import math
 import random
@@ -23,6 +25,35 @@ LIGHT_GRAY = (60, 60, 60)
 GRAY = (20, 20, 20)
 RED = (255, 0, 0)
 MAX_SPEED = 20
+
+
+# Controls the star animations.
+class Star:
+    def __init__(self, center, momentum, radius):
+        self.center = center
+        self.momentum = momentum
+        self.radius = radius
+
+    def draw_star(self):
+        pygame.draw.circle(gameDisplay, LIGHT_GRAY, (int(self.center[0]), int(self.center[1])), self.radius)
+
+    # The speed of the stars is opposite of the direction of the rocket, and proportionate to its radius.
+    def move_star(self):
+        self.momentum = [-0.05 * rocket.momentum[0] * self.radius, -0.05 * rocket.momentum[1] * self.radius]
+        if self.center[0] < -50:
+            self.center[0] = DISPLAY_WIDTH + 50
+            self.radius = random.randint(1, 5)
+        elif self.center[0] > DISPLAY_WIDTH + 50:
+            self.center[0] = -50
+            self.radius = random.randint(1, 5)
+        if self.center[1] < -50:
+            self.center[1] = DISPLAY_HEIGHT + 50
+            self.radius = random.randint(1, 5)
+        elif self.center[1] > DISPLAY_HEIGHT + 50:
+            self.center[1] = -50
+            self.radius = random.randint(1, 5)
+        self.center = [self.center[0] + self.momentum[0], self.center[1] - self.momentum[1]]
+        self.draw_star()
 
 
 # Contains all of the methods needed to handle rocket movement and rotation.
@@ -103,33 +134,58 @@ class Shot:
                          self.start, self.end, 4)
 
 
-# Controls the star animations.
-class Star:
-    def __init__(self, center, momentum, radius):
-        self.center = center
+class Asteroids:
+    def __init__(self, size, theta, momentum):
+        self.size = size
+        self.theta = theta
+
+        # Ensures that the starting point of each asteroid is off of the screen,
+        # and travels across the screen (for the most part).
+        if 0 <= self.theta <= 90:
+            if random.getrandbits(1):
+                self.center = [-50, random.randint(0, DISPLAY_HEIGHT / 2)]
+            else:
+                self.center = [random.randint(0, DISPLAY_WIDTH / 2), -50]
+        elif 90 <= self.theta <= 180:
+            if random.getrandbits(1):
+                self.center = [DISPLAY_WIDTH + 50, random.randint(0, DISPLAY_HEIGHT / 2)]
+            else:
+                self.center = [random.randint(DISPLAY_WIDTH / 2, DISPLAY_WIDTH), -50]
+        elif 180 <= self.theta <= 270:
+            if random.getrandbits(1):
+                self.center = [DISPLAY_WIDTH + 50, random.randint(DISPLAY_HEIGHT / 2, DISPLAY_HEIGHT)]
+            else:
+                self.center = [random.randint(DISPLAY_WIDTH / 2, DISPLAY_WIDTH), DISPLAY_HEIGHT + 50]
+        elif 270 <= self.theta <= 360:
+            if random.getrandbits(1):
+                self.center = [-50, random.randint(DISPLAY_HEIGHT / 2, DISPLAY_HEIGHT)]
+            else:
+                self.center = [random.randint(0, DISPLAY_WIDTH / 2), DISPLAY_HEIGHT + 50]
         self.momentum = momentum
-        self.radius = radius
+        self.points = []
 
-    def draw_star(self):
-        pygame.draw.circle(gameDisplay, LIGHT_GRAY, (int(self.center[0]), int(self.center[1])), self.radius)
+        # Randomizes the shape of each asteroid
+        for point in range(10):
+                variance = random.randint(self.size * -4, self.size * 4)
+                self.points.append([self.center[0] + (self.size * 17 + variance) * math.cos(math.radians(36 * point)),
+                                    self.center[1] + (self.size * 17 + variance) * math.sin(math.radians(36 * point))])
 
-    # The speed of the stars is opposite of the direction of the rocket, and proportionate to its radius.
-    def move_star(self):
-        self.momentum = [-0.05 * rocket.momentum[0] * self.radius, -0.05 * rocket.momentum[1] * self.radius]
-        if self.center[0] < -50:
-            self.center[0] = DISPLAY_WIDTH + 50
-            self.radius = random.randint(1, 5)
-        elif self.center[0] > DISPLAY_WIDTH + 50:
-            self.center[0] = -50
-            self.radius = random.randint(1, 5)
-        if self.center[1] < -50:
-            self.center[1] = DISPLAY_HEIGHT + 50
-            self.radius = random.randint(1, 5)
-        elif self.center[1] > DISPLAY_HEIGHT + 50:
-            self.center[1] = -50
-            self.radius = random.randint(1, 5)
-        self.center = [self.center[0] + self.momentum[0], self.center[1] - self.momentum[1]]
-        self.draw_star()
+    # Movement of the asteroids
+    def travel(self):
+
+        # Memory saver
+        for asteroid in asteroids:  # type: Asteroids
+            if not (-50 <= asteroid.center[0] <= DISPLAY_WIDTH + 50) \
+                    or not (-50 <= asteroid.center[1] <= DISPLAY_HEIGHT + 50):
+                asteroids.remove(asteroid)
+                del asteroid
+
+        self.center[0] += self.momentum * math.cos(math.radians(self.theta))
+        self.center[1] += self.momentum * math.sin(math.radians(self.theta))
+        for point in self.points:
+            point[0] += self.momentum * math.cos(math.radians(self.theta))
+            point[1] += self.momentum * math.sin(math.radians(self.theta))
+        pygame.draw.polygon(gameDisplay, WHITE, self.points, 2)
 
 
 rocket = Rocket([DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2], 90, [0, 0])  # Instantiates a Rocket object.
@@ -142,6 +198,8 @@ for i in range(NUM_STARS):  # Loop that will populate the stars array with NUM_S
                        random.randint(-50, DISPLAY_HEIGHT + 50)],
                       [0, 0],
                       random.randint(1, 5)))
+no_repeat = 0  # TEMPORARY - This is used to create one asteroid every three seconds
+asteroids = []
 
 # Main loop:
 game_exit = False
@@ -169,14 +227,21 @@ while not game_exit:
 
     # gameDisplay updates.
     gameDisplay.fill(GRAY)
+
+    if int(time.time()) % 3 == 0 and int(time.time()) != no_repeat:
+        asteroids.append(Asteroids(random.randint(1, 3), random.randint(1, 360), random.randint(1, 8)))
+        no_repeat = int(time.time())
+
+    for i in stars:
+        i.move_star()
     for i in shots:
         if i.life >= SHOT_LIFE:
             shots.remove(i)
             del i
         else:
             i.travel()
-    for i in stars:
-        i.move_star()
+    for i in asteroids:
+        i.travel()
     rocket.travel()
     pygame.display.update()
     clock.tick(FPS)
