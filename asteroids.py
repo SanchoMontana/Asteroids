@@ -112,7 +112,7 @@ class Rocket:
 # Allows the user to shoot lasers.
 class Shot:
     def __init__(self, center, theta):
-        self.theta = theta
+        self.theta = theta + random.randint(-2, 2)  # Bullet RNG
         self.center = [center[0] + ROCKET_SIZE / 2 * math.cos(math.radians(self.theta)),
                        center[1] - ROCKET_SIZE / 2 * math.sin(math.radians(self.theta))]
         self.start = []
@@ -135,7 +135,9 @@ class Shot:
 
 
 class Asteroids:
-    def __init__(self, size, theta, momentum, center=[]):
+    def __init__(self, size, theta, momentum, center=None):
+        if center is None:
+            center = []
         self.size = size
         self.new_size = self.size - 1
         self.momentum = momentum
@@ -171,16 +173,16 @@ class Asteroids:
                 else:
                     self.center = [random.randint(0, DISPLAY_WIDTH / 2), DISPLAY_HEIGHT + 50]
 
-        # Randomizes the shape of each asteroid
+        # Randomizes the shape of each asteroid.
         for point in range(10):
-                variance = random.randint(self.size * -4, self.size * 4)
-                self.points.append([self.center[0] + (self.size * 17 + variance) * math.cos(math.radians(36 * point)),
-                                    self.center[1] + (self.size * 17 + variance) * math.sin(math.radians(36 * point))])
+            variance = random.randint(self.size * -4, self.size * 4)
+            self.points.append([self.center[0] + (self.size * 17 + variance) * math.cos(math.radians(36 * point)),
+                                self.center[1] + (self.size * 17 + variance) * math.sin(math.radians(36 * point))])
 
-    # Movement of the asteroids
+    # Movement of the asteroids.
     def travel(self):
 
-        # Memory saver
+        # Memory saver.
         for asteroid in asteroids:  # type: Asteroids
             if not (-50 <= asteroid.center[0] <= DISPLAY_WIDTH + 50) \
                     or not (-50 <= asteroid.center[1] <= DISPLAY_HEIGHT + 50):
@@ -209,6 +211,17 @@ class Asteroids:
             del self
 
 
+# Iterated through all of the shots and all of the asteroids and detects if there is a collision (roughly).
+def test_collision():
+    for shot in shots:
+        for asteroid in asteroids:
+            if asteroid.center[0] - asteroid.size * 17 < shot.center[0] < asteroid.center[0] + asteroid.size * 17 \
+                    and asteroid.center[1] - asteroid.size * 17 < shot.center[1] < asteroid.center[1] + asteroid.size * 17:
+                asteroid.split()
+                shots.remove(shot)
+                break
+
+
 rocket = Rocket([DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2], 90, [0, 0])  # Instantiates a Rocket object.
 
 stars = []  # This empty list will be populated with Star objects.
@@ -219,7 +232,7 @@ for i in range(NUM_STARS):  # Loop that will populate the stars array with NUM_S
                        random.randint(-50, DISPLAY_HEIGHT + 50)],
                       [0, 0],
                       random.randint(1, 5)))
-no_repeat = 0  # TEMPORARY - This is used to create one asteroid every three seconds
+no_repeat = 0  # TEMPORARY - This is used to create one asteroid every three seconds.
 asteroids = []
 
 # Main loop:
@@ -238,8 +251,6 @@ while not game_exit:
                 rocket.delta_theta -= 6
             elif event.key == pygame.K_SPACE:
                 shots.append(Shot(rocket.center, rocket.theta))
-                for asteroid in asteroids:
-                    asteroid.split()
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_UP:
                 rocket.thrusters = False
@@ -251,10 +262,12 @@ while not game_exit:
     # gameDisplay updates.
     gameDisplay.fill(GRAY)
 
-    if int(time.time()) % 1 == 0 and int(time.time()) != no_repeat:
+    # Need to replace, so that difficulty will slowly increase over time.
+    if int(time.time()) % 2 == 0 and int(time.time()) != no_repeat:
         asteroids.append(Asteroids(random.randint(1, 3), random.randint(1, 360), random.randint(2, 8)))
         no_repeat = int(time.time())
 
+    test_collision()
     for i in stars:
         i.move_star()
     for i in shots:
