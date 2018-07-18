@@ -136,6 +136,7 @@ class Shot:
 
 class Asteroids:
     def __init__(self, size, theta, momentum, center=None):
+        global asteroids
         if center is None:
             center = []
         self.size = size
@@ -181,34 +182,28 @@ class Asteroids:
 
     # Movement of the asteroids.
     def travel(self):
-
-        # Memory saver.
-        for asteroid in asteroids:  # type: Asteroids
-            if not (-50 <= asteroid.center[0] <= DISPLAY_WIDTH + 50) \
-                    or not (-50 <= asteroid.center[1] <= DISPLAY_HEIGHT + 50):
-                asteroids.remove(asteroid)
-                del asteroid
-
         self.center[0] += self.momentum * math.cos(math.radians(self.theta))
         self.center[1] += self.momentum * math.sin(math.radians(self.theta))
         for point in self.points:
             point[0] += self.momentum * math.cos(math.radians(self.theta))
             point[1] += self.momentum * math.sin(math.radians(self.theta))
         pygame.draw.polygon(gameDisplay, WHITE, self.points, 2)
+        # Memory saver.
+        if not (-50 <= self.center[0] <= DISPLAY_WIDTH + 50) \
+                or not (-50 <= self.center[1] <= DISPLAY_HEIGHT + 50):
+            asteroids.remove(self)
+            del self
 
     def split(self):
         if self.size > 1:
-            self.delta_theta = random.randint(0, 90)
-            self.delta_theta2 = -1 * self.delta_theta + random.randint(-15, 15)
-            self.new_momentum = random.randint(2, 8)
-            self.new_momentum2 = random.randint(4, 6)
-            asteroids.append(Asteroids(self.new_size, self.theta + self.delta_theta, self.new_momentum, self.center))
-            asteroids.append(Asteroids(self.new_size, self.theta + self.delta_theta2, self.new_momentum2, self.center))
-            asteroids.remove(self)
-            del self
-        else:
-            asteroids.remove(self)
-            del self
+            for i in range(2):
+                self.delta_theta = random.randint(0, 90)
+                self.delta_theta2 = -1 * self.delta_theta + random.randint(-15, 15)
+                self.new_momentum = random.randint(2, 8)
+                self.new_momentum2 = random.randint(4, 6)
+                asteroids.append(Asteroids(self.new_size, (self.theta + random.randint(0, 90)) % 360, random.randint(2, 8), self.center))
+        asteroids.remove(self)
+        del self
 
 
 # Iterated through all of the shots and all of the asteroids and detects if there is a collision (roughly).
@@ -217,8 +212,8 @@ def test_collision():
         for asteroid in asteroids:
             if asteroid.center[0] - asteroid.size * 17 < shot.center[0] < asteroid.center[0] + asteroid.size * 17 \
                     and asteroid.center[1] - asteroid.size * 17 < shot.center[1] < asteroid.center[1] + asteroid.size * 17:
-                asteroid.split()
                 shots.remove(shot)
+                asteroid.split()
                 break
 
 
@@ -263,7 +258,7 @@ while not game_exit:
     gameDisplay.fill(GRAY)
 
     # Need to replace, so that difficulty will slowly increase over time.
-    if int(time.time()) % 2 == 0 and int(time.time()) != no_repeat:
+    if int(time.time()) % 7 == 0 and int(time.time()) != no_repeat:
         asteroids.append(Asteroids(random.randint(1, 3), random.randint(1, 360), random.randint(2, 8)))
         no_repeat = int(time.time())
 
@@ -278,6 +273,10 @@ while not game_exit:
             i.travel()
     for i in asteroids:
         i.travel()
+    for i in asteroids:
+        print i.center,
+    print ""
+
     rocket.travel()
     pygame.display.update()
     clock.tick(FPS)
