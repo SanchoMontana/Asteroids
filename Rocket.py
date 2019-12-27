@@ -40,12 +40,15 @@ class Rocket:
             self.momentum[1] -= DECELERATION_RATE * abs(self.momentum[1] / hypotenuse)
         elif self.momentum[1] < 0:
             self.momentum[1] += DECELERATION_RATE * abs(self.momentum[1] / hypotenuse)
+        if hypotenuse < 0.1:
+            self.momentum = [0, 0]
 
     # Speeds up the rocket when thrusters are in use.
     def speedup(self):
         hypotenuse = (self.momentum[0] ** 2 + self.momentum[1] ** 2) ** 0.5
         if hypotenuse >= MAX_SPEED:
             self.slowdown()
+            return
         self.momentum = [self.momentum[0] + ACCELERATION_RATE * math.cos(math.radians(self.theta)),
                          self.momentum[1] + ACCELERATION_RATE * math.sin(math.radians(self.theta))]
 
@@ -56,7 +59,6 @@ class Rocket:
         else:
             self.slowdown()
         self.draw_rocket()
-
 
 
 rocket = Rocket([DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2], 90, [0, 0])  # Instantiates a Rocket object.

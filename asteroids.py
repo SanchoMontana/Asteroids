@@ -58,7 +58,7 @@ while not game_exit:
 
     # Need to replace, so that difficulty will slowly increase over time.
     if int(time.time()) % 7 == 0 and int(time.time()) != no_repeat:
-        Asteroid.asteroids.append(Asteroid.Asteroids(random.randint(1, 3), random.randint(1, 360), random.randint(2, 8)))
+        Asteroid.asteroids.append(Asteroid.Asteroids(random.randint(1, 3), random.randint(1, 360), random.randint(MIN_ASTEROID_SPEED, MAX_ASTEROID_SPEED)))
         no_repeat = int(time.time())
 
     test_collision(Asteroid.asteroids)

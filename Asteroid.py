@@ -63,18 +63,21 @@ class Asteroids:
             point[1] += self.momentum * math.sin(math.radians(self.theta))
         pygame.draw.polygon(gameDisplay, WHITE, self.points, 2)
         # Memory saver.
-        if not (-50 <= self.center[0] <= DISPLAY_WIDTH + 50) \
-                or not (-50 <= self.center[1] <= DISPLAY_HEIGHT + 50):
+        if (-50 >= self.center[0] <= DISPLAY_WIDTH + 50) \
+                or (-50 >= self.center[1] <= DISPLAY_HEIGHT + 50):
             asteroids.remove(self)
             del self
 
     def split(self):
         if self.size > 1:
-            for i in range(2):
-                self.delta_theta = random.randint(0, 90)
-                self.delta_theta2 = -1 * self.delta_theta + random.randint(-15, 15)
-                self.new_momentum = random.randint(2, 8)
-                self.new_momentum2 = random.randint(4, 6)
-                asteroids.append(Asteroids(self.new_size, (self.theta + random.randint(0, 90)) % 360, random.randint(2, 8), self.center))
+            self.size = self.new_size
+            self.delta_theta = random.randint(0,90)
+            self.theta = (self.theta + self.delta_theta) % 360
+            self.new_momentum = random.randint(MIN_ASTEROID_SPEED, MAX_ASTEROID_SPEED)
+            self.momentum = self.new_momentum
+            self.delta_theta2 = -1 * (self.theta + random.randint(-15, 15)) % 360
+            self.new_momentum2 = random.randint(MIN_ASTEROID_SPEED, MAX_ASTEROID_SPEED)
+            asteroids.append(Asteroids(self.new_size, self.delta_theta2, self.new_momentum2, self.center))
+            asteroids.append(Asteroids(self.new_size, self.delta_theta, self.new_momentum, self.center))
         asteroids.remove(self)
         del self
